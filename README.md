@@ -10,7 +10,7 @@ Make sure that `Python 3` is installed on the target system.
 
 ```console
 git clone https://github.com/zhukovdm/battleship
-cd src/
+cd battleship/src/
 python3 battleship.py
 ```
 
