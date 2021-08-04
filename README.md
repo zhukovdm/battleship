@@ -1,6 +1,10 @@
 # Battleship
 
-![open](./assets/img/battleship.png)
+## Introduction
+
+A `Python` implementation of the board game [Battleship](https://en.wikipedia.org/wiki/Battleship_(game))
+
+![open](./assets/images/battleship.png)
 
 ## System requirements
 
@@ -17,10 +21,3 @@ python3 battleship.py
 ## Gameplay
 
 The gameplay is intuitive, just follow the instructions.
-
-For more information about game internals, please visit project documention
-(en | [cz](./assets/doc/cz.pdf)).
-
-## References
-
-[Wikipedia - Battleship (game)](https://en.wikipedia.org/wiki/Battleship_(game))

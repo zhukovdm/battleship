@@ -6,7 +6,7 @@ from reporter import Reporter
 
 
 class Game:
-    """Game control, implements main game loop"""
+    """ Game control, implements main game loop. """
 
     row_prefix = " │ "
     row_suffix = " │"
@@ -22,9 +22,9 @@ class Game:
         print(" |____/ \\__,_|\\__|\\__|_|\\___||___/_| |_|_| .__/ ")
         print("                                         |_|  ")
         print()
-        print("           0: Player   vs. Player")
-        print("           1: Player   vs. Computer")
-        print("           2: Computer vs. Computer")
+        print("           0: player   vs. player")
+        print("           1: player   vs. computer")
+        print("           2: computer vs. computer")
 
     @staticmethod
     def show_row_prefix() -> None:
@@ -51,14 +51,21 @@ class Game:
         print(" {}────────────────────────────────────────{}────────────────────────────────────────{}".format(left, middle, right))
 
     @staticmethod
-    def set_hi_player(p: Player(), n: int) -> None:
+    def show_span(length: int) -> None:
+        span = " " * length
+        print(span, end="")
+
+    @staticmethod
+    def set_hi_player(p: Player, n: int) -> None:
         """Dialog for setting up the real player."""
+
         p.type = "hi"
 
         # set name, length must be < than max_length
         p.name = " " * 100
         while len(p.name) > Game.max_player_name_len:
             player_order = "1st" if n == 0 else "2nd"
+            print()
             p.name = input(" enter name of the {} player ".format(player_order))
             if len(p.name) > Game.max_player_name_len:
                 Reporter.report_player_name_is_too_long(Game.max_player_name_len)
@@ -82,16 +89,17 @@ class Game:
                 elif user_input == "s":
                     p.set_ships()
                     confirmed = "a"
-
+        p.grid.finalize()
         Reporter.report_player_set(p.name)
 
     @staticmethod
-    def set_ai_player(p: Player(), n: int) -> None:
+    def set_ai_player(p: Player, n: int) -> None:
         """Computer player always gets generated ships."""
 
         p.type = "ai"
         p.name = "PC" + (n + 1).__repr__()
         p.gen_ships()
+        p.grid.finalize()
         Reporter.report_player_set(p.name)
 
     def __init__(self):
@@ -127,7 +135,7 @@ class Game:
         self.show_player_ship_count(1)
         Game.show_row_suffix()
 
-    def show_grids(self):
+    def show_grids(self) -> None:
         """ Present grids already uncovered by a player. """
 
         for row in range(Grid.rows + 1):
@@ -144,14 +152,21 @@ class Game:
     def show_turns(self) -> None:
         """ Present turns made by an active player. """
 
+        MAX_LENGTH = 82
+
         Game.show_row_prefix()
         self.show_active_player_name()
 
-        length = len(Game.row_prefix) + len(self.active_player().name) + 1
+        length = len(Game.row_prefix) + len(self.active_player().name)
+
         for t in range(len(self.turns)):
 
+            new_length = length + 1 + len(self.turns[t].__repr__()) + 2
+
             # wrap
-            if length + len(self.turns[t]) > 100:
+            if new_length > MAX_LENGTH:
+                Game.show_span(MAX_LENGTH - length)
+                Game.show_row_suffix()
                 Game.show_row_prefix()
                 length = 3 + len(self.turns[t].__repr__())
                 print(self.turns[t], end="")
@@ -159,8 +174,10 @@ class Game:
             # no wrap
             else:
                 length += 1 + len(self.turns[t].__repr__())
-                print(" {}".format(self.turns[t]))
+                print(" {}".format(self.turns[t]), end="")
         
+        self.show_span(MAX_LENGTH - length)
+
         self.show_row_suffix()
 
     def show(self) -> None:
@@ -178,10 +195,11 @@ class Game:
 
     def user_vs_computer(self) -> None:
         order = ""
-        options = [ "1", "2" ]
+        options = ["1", "2"]
 
         # get user input
         while order not in options:
+            print()
             order = input(" start (1)st or (2)nd? ")
             if order not in options: Reporter.report_invalid_input()
 
@@ -203,7 +221,8 @@ class Game:
         while option not in options:
             print()
             option = input(" select option: ")
-            if option not in options: Reporter.report_invalid_input()
+            if option not in options:
+                Reporter.report_invalid_input()
 
         # initialize game accordingly
         if   option == "0": self.user_vs_user()
@@ -219,7 +238,6 @@ class Game:
         is_ship_segment = self.opponent().grid.is_ship(row, col)
 
         if is_ship_segment:
-            self.turns.append((row, col))
             self.active_player().ship_cells_found.append((row, col))
             self.active_player().opponent_grid.set_ship(row, col)
             candidate_ship = self.active_player().opponent_grid.find_ship_segments(row, col)
@@ -274,9 +292,10 @@ class Game:
             for row_dir, col_dir in dirs:
                 row = row_old + row_dir
                 col = col_old + col_dir
-                if self.active_player().grid.is_unknown(row, col):
+                if self.active_player().opponent_grid.is_unknown(row, col):
                     break
 
+        self.turns.append((row, col))
         self.process_strike(row, col)
 
         return self.opponent().grid.is_ship(row, col)
@@ -285,6 +304,7 @@ class Game:
         """ User strike. """
 
         row, col = self.active_player().get_user_strike()
+        self.turns.append((row, col))
         self.process_strike(row, col)
         return self.opponent().grid.is_ship(row, col)
 
@@ -294,9 +314,8 @@ class Game:
             not support abstract classes without additional dependencies. """
 
         return self.strike_ai() if self.active_player().is_ai() else self.strike_hi()
-            
 
-    def play(self):
+    def play(self) -> None:
         """ Main game loop alternates player turns. """
 
         self.show()
@@ -304,10 +323,11 @@ class Game:
         # determine the winner
         while self.active_player().has_ships() and self.opponent().has_ships():
             hit = self.strike()
+            self.show()
             if not hit:
                 self.player = 1 - self.player
                 self.turns = []
-            self.show()
+                self.show()
 
         # uncover ships
         self.active_player().opponent_grid = self.opponent().grid
@@ -317,5 +337,4 @@ class Game:
         # report winner
         winner_name = self.active_player().name if self.active_player().has_ships() \
             else self.opponent().name
-
         Reporter.report_winner(winner_name)

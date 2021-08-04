@@ -1,3 +1,10 @@
+class Reporter
+    report_invalid_input() -> None
+    def report_player_name_is_too_long(len_allowed: int) -> None
+    def report_player_set(player_name: str) -> None
+    def report_game_started() -> None
+    def report_winner(winner_name: str) -> None
+
 class Grid
     rows
     cols
@@ -11,81 +18,75 @@ class Grid
     def is_unknown(self, row, col) -> bool
     def is_water(self, row, col) -> bool
     def is_ship(self, row, col) -> bool
-    def set_unknown(self, row, col)
-    def set_water(self, row, col)
-    def set_ship(self, row, col)
-    def collect_unknown_cells(self) -> list()
-    def finalize(self)
-    def show_row(self, row)
-    def show(self)
+    def set_unknown(self, row, col) -> None
+    def set_water(self, row, col) -> None
+    def set_ship(self, row, col) -> None
+    def add_water_around(self, cells: List[Tuple[int, int]]) -> List[Tuple[int, int]]
+    def add_ship_segments(self, ship_segments: List[Tuple[int, int]]) -> None
+    def get_unknown_cells(self) -> List[Tuple[int, int]]
+    def finalize(self) -> None
+    def find_ship_segments(self, row, col) -> List[Tuple[int, int]]
+    def show_row(self, row) -> None
+    def show(self) -> None
 
 class Player
     ai_type
     hi_type
     ship_views
-    self.name
-    self.type
-    self.ships_count
-    self.unknown_cells
-    self.ship_cells_found
-    self.cells_to_check
-    self.grid
-    self.opponent_grid
+    def get_user_position(message) -> Tuple[int, int]
+    def get_user_interval() -> Tuple[int, int, int, int]
+    def map_dim_lower_higher(a, b, c, d) -> Tuple[int, int, int, bool]
+    def show_ships_count(ships_count) -> None
     def __init__(self)
-    def has_ships(self) -> bool
     def is_ai(self) -> bool
+    def has_ships(self) -> bool
     def has_ship_cells_found(self) -> bool
-    def has_cells_to_check(self) -> bool
-    def check_cell(self, index) -> (int, int)
     def borrow_longest_ship(self) -> int
-    def release_longest_ship(self, length)
-    def try_fit_ship(self, length, row, col, row_dir, col_dir) -> list()
-    def unroll(self, occupied)
+    def release_longest_ship(self, length) -> None
+    def check_cells_unknown(self, cells: List[Tuple[int, int]]) -> bool
+    def try_fit_ship(self, length, row, col, row_dir, col_dir) -> List[Tuple[int, int]]
+    def unroll_changes(self, occupied) -> None
     def gen_ships(self) -> bool
-    def report_invalid_input(self)
-    def get_user_position(self, message) -> (int, int)
-    def get_user_interval(self) -> (int, int, int, int)
-    def add_water_around(self, row, col)
-    def positions_unknown(self, positions) -> bool
-    def add_ship_pieces(self, pieces)
-    def add_oriented_ship(self, dim, lower, higher, is_horizontal) -> bool
-    def map_values(self, a, b, c) -> (int, int, int)
-    def add_ship(self, ships_count) -> list()
-    def find_ship_segments(self, row, col) -> list()
-    def remove_water_cell(self, row, col)
-    def remove_ship_segments(self, segments)
-    def remove_ship(self, ships_count) -> list()
+    def add_oriented_ship(self, dim: int, lower: int, higher: int, is_horizontal: bool) -> bool
+    def add_ship(self, ships_count) -> List[int]
+    def remove_water_cell(self, row: int, col: int) -> None
+    def remove_ship_segments(self, ship_segments: List[Tuple[int, int]]) -> None
+    def remove_ship(self, ships_count: List[int]) -> List[int]
     def set_ships(self)
-    def get_user_strike(self) -> (int, int)
-    def show_header(self, ships_count)
-    def show_ships(self, ships_count)
+    def get_user_strike(self) -> Tuple[int, int]
+    def show_ship_header(self, ships_count) -> None
 
 class Game
-    def greet(self)
+    row_prefix
+    row_suffix
+    max_player_name_len
+    def greet() -> None
+    def show_row_prefix() -> None
+    def show_row_suffix() -> None
+    def show_row_middle() -> None
+    def show_grid_prefix() -> None
+    def show_grid_suffix() -> None
+    def show_margin(left, middle, right) -> None
+    def show_span(length: int) -> None
+    def set_hi_player(p: Player(), n: int) -> None
+    def set_hi_player(p: Player, n: int) -> None
+    def set_ai_player(p: Player, n: int) -> None
     def __init__(self)
-    def show_row_prefix(self)
-    def show_row_middle(self)
-    def show_row_suffix(self)
-    def show_grid_prefix(self)
-    def show_grid_suffix(self)
-    def show_margin(self, left, middle, right)
-    def show_active_player_name(self)
-    def show_spanned_player_name(self, index)
-    def show_player_ships(self, index)
-    def show_players(self)
-    def show_grids(self)
-    def show_turns(self)
-    def show(self)
-    def report_grid_is_set(self, p)
-    def set_hi_player(self, p, n)
-    def set_ai_player(self, p, n)
-    def user_vs_user(self)
-    def user_vs_computer(self)
-    def computer_vs_computer(self)
-    def set_players(self)
-    def active_player(self) -> Player()
-    def opponent(self) -> Player()
-    def try_ai_strike(self, row, col) -> bool
-    def eval_hi_strike(self,rC,cC,agent,enemy)
-    def strike(self)
-    def play(self)
+    def active_player(self) -> Player
+    def opponent(self) -> Player
+    def show_active_player_name(self) -> None
+    def show_spanned_player_name(self, index: int) -> None
+    def show_player_ship_count(self, index: int) -> None
+    def show_players(self) -> None
+    def show_grids(self) -> None
+    def show_turns(self) -> None
+    def show(self) -> None
+    def user_vs_user(self) -> None
+    def user_vs_computer(self) -> None
+    def computer_vs_computer(self) -> None
+    def set_players(self) -> None
+    def process_strike(self, row, col) -> None
+    def strike_ai(self) -> bool
+    def strike_hi(self) -> bool
+    def strike(self) -> bool
+    def play(self) -> None

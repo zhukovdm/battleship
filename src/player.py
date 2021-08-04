@@ -79,7 +79,7 @@ class Player:
         self.ships_count[length] += 1
 
     def check_cells_unknown(self, cells: List[Tuple[int, int]]) -> bool:
-        """Verify list of positions if all of them are unknown"""
+        """ Verify list of positions if all of them are unknown. """
         are_unknown = True
 
         for row, col in cells:
@@ -121,7 +121,7 @@ class Player:
         return ship_segments + water_segments
 
     def unroll_changes(self, occupied) -> None:
-        """Remove all changes made into the grid."""
+        """ Remove all changes made into the grid. """
 
         for row, col in occupied:
             self.grid.set_unknown(row, col)
@@ -175,7 +175,7 @@ class Player:
             return True
 
     def add_oriented_ship(self, dim: int, lower: int, higher: int, is_horizontal: bool) -> bool:
-        """Add either horizontal or vertical ship."""
+        """ Add either horizontal or vertical ship. """
 
         # get positions of ship segments
         pos = []
@@ -192,7 +192,7 @@ class Player:
         return ship_set
 
     def add_ship(self, ships_count) -> List[int]:
-        """Get termination segments from the user and add ship."""
+        """ Get termination segments from the user and add ship. """
 
         dim = lower = higher = 0
         ship_set = is_h = False
@@ -264,7 +264,7 @@ class Player:
         return ships_count
 
     def set_ships(self):
-        """The user sets ships manually."""
+        """ The user sets ships manually. """
 
         ships_count = self.ships_count[:]
 
@@ -289,7 +289,7 @@ class Player:
                     print(" no ships can be removed.")
 
     def get_user_strike(self) -> Tuple[int, int]:
-        """Get valid point from the user, returns tuple."""
+        """ Get valid point from the user, returns tuple. """
 
         while True:
             try:

@@ -1,5 +1,5 @@
 class Reporter:
-    """Reporter is used for reporting game state changes."""
+    """ Reporter is used for reporting game state changes. """
 
     @staticmethod
     def report_invalid_input() -> None:
