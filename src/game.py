@@ -1,215 +1,250 @@
 import random
-from agent import Agent
+
+from grid import Grid
+from player import Player
 
 class Game:
 
-    """
-        Game control
-    """
+    row_prefix = " │ "
+    row_suffix = " │"
+    max_player_name_len = 38
 
-# Init object
+    def greet(self):
+        print()
+        print("  ____        _   _   _           _     _       ")
+        print(" | __ )  __ _| |_| |_| | ___  ___| |__ (_)_ __  ")
+        print(" |  _ \\ / _` | __| __| |/ _ \\/ __| '_ \\| | '_ \\ ")
+        print(" | |_) | (_| | |_| |_| |  __/\\__ \\ | | | | |_) |")
+        print(" |____/ \\__,_|\\__|\\__|_|\\___||___/_| |_|_| .__/ ")
+        print("                                         |_|  ")
+        print()
+        print("           0: Player   vs. Player")
+        print("           1: Player   vs. Computer")
+        print("           2: Computer vs. Computer")
 
     def __init__(self):
-        self.order = []
-        self.agent1 = Agent("")
-        self.agent2 = Agent("")
-        self.last_agent_name = ""
-        self.last_turns = []
+        self.player  = 0
+        self.players = [ Player(), Player() ]
+        self.turns   = []
+        self.hit     = False
+        self.greet()
 
-# Init game
+    def show_row_prefix(self):
+        print(Game.row_prefix, end="")
 
-    def gen_ships_hi(self,agent):
-        '''
-            Dialog for human player to generate ships
-            either in auto or manual mode
-        '''
-        confirmed = ""
-        while confirmed != "1":
-            gen_sign = ""
-            while gen_sign not in ["0","1"]:
-                gen_sign = input("   Auto (0) or manual (1) ship generation? ")
-                print()
-                if gen_sign == "0":
-                    agent.ships_automatically()
-                    confirmed = input("   Enter (1) if you agree. Else, enter any other key. ")
-                    print()
-                elif gen_sign == "1":
-                    agent.ships_manually()
-                    confirmed = "1"
+    def show_row_middle(self):
+        self.show_row_prefix()
 
-    def gen_ships_ai(self,agent,n):
-        '''
-            Ships auto generation for pc player
-            always in auto mode
-        '''
-        agent.kind = "ai"
-        agent.name = "PC" + n
-        agent.ships_automatically()
-        input("   {} has been set. Press Enter to continue.".format(agent.name))
+    def show_row_suffix(self):
+        print(Game.row_suffix)
+
+    def show_grid_prefix(self):
+        print("  ", end="")    
+
+    def show_grid_suffix(self):
+        print("   ", end="")
+
+    def show_margin(self, left, middle, right):
+        print(" {}────────────────────────────────────────{}────────────────────────────────────────{}".format(left, middle, right))
+
+    def show_active_player_name(self):
+        print("{}".format(self.active_player.name), end="")
+
+    def show_spanned_player_name(self, index):
+        print("{:38}".format(self.players[index].name), end="")
+
+    def show_player_ships(self, index):
+        result = []
+        for i in range(1, len(self.players[index].ships_count)):
+            result.append("{}x {}".format(self.players[index].ships_count[i], \
+                                          self.players[index].ships_views[i]))
+        print(", ".join(result), end="")
+
+    def show_players(self):
+        self.show_row_prefix()
+        self.show_spanned_player_name(0)
+        self.show_row_middle()
+        self.show_spanned_player_name(1)
+        self.show_row_suffix()
+        self.show_row_prefix()
+        self.show_player_ships(0)
+        self.show_row_middle()
+        self.show_player_ships(1)
+        self.show_row_suffix()
+
+    def show_grids(self):
+        for row in range(Grid.rows + 1):
+            self.show_row_prefix()
+            self.show_grid_prefix()
+            self.players[1].opponent_grid.show_row(row)
+            self.show_grid_suffix()
+            self.show_row_middle()
+            self.show_grid_prefix()
+            self.players[0].opponent_grid.show_row(row)
+            self.show_grid_suffix()
+            self.show_row_suffix()
+
+    def show_turns(self):
+        pass
+        self.show_row_prefix()
+        self.show_active_player_name()
+
+        length = 3 + len(self.active_player.name) + 1
+        for t in range(len(self.turns)):
+
+            # wrap
+            if (length + len(turns[t]) > 100):
+                self.show_row_prefix()
+                length = 3 + len(turns[t]).__repr__()
+                print(turns[t], end="")
+            
+            # no wrap
+            else:
+                length += 1 + len(turns[t].__repr__())
+                print(" {}".format(turns[t]))
+        
+        self.show_row_suffix()
+
+    def show(self):
+        self.show_margin("┌", "┬", "┐")
+        self.show_players()
+        self.show_margin("├", "┼", "┤")
+        self.show_grids()
+        self.show_margin("├", "┴", "┤")
+        self.show_turns()
+        self.show_margin("└", "─", "┘")
+
+    def report_grid_is_set(self, p):
+        input(" {} has been set, press Enter to continue.".format(p.name))
+
+    def set_hi_player(self, p, n):
+
+        '''Dialog for setting up the user player.'''
+
+        p.type = "hi"
+        
+        # set name, length must be < than max_length
+        p.name = " " * 100
+        while len(p.name) > Game.max_player_name_len:
+            player_order = "1st" if n == 0 else "2nd"
+            p.name = input(" Enter name of the {} player: ".format(player_order))
+            if len(p.name) > Game.max_player_name_len:
+                print(" Entered name is too long, only {} chars are allowed.".format(Game.max_player_name_len))
+
+        # construct grid
+        confirmed = "?"
+        while confirmed != "a":
+            print()
+            
+            user_input = "?"
+            while user_input not in ["g", "s"]:
+                user_input = input(" (g)enerate or (s)et ships manually? ")
+                
+                # generate ships until agreed
+                if user_input == "g":
+                    p.gen_ships()
+                    confirmed = input(" (a)gree or (d)isagree? ")
+                
+                # set ships manually
+                elif user_input == "s":
+                    p.set_ships()
+                    confirmed = "a"
+
+        self.report_grid_set(p)
+
+    def set_ai_player(self, p, n):
+
+        '''Computer player always gets generated ships.'''
+
+        p.type = "ai"
+        p.name = "PC" + (n + 1).__repr__()
+        p.gen_ships()
+        
+    def user_vs_user(self):
+        for i in range(2): self.set_hi_player(self.players[i], i)
+
+    def user_vs_computer(self):
+        order = ""
+
+        while order not in [ "1", "2" ]:
+            order = input(" Start (1)st or (2)nd? ")
+            orders = [0, 1] if order == "1" else [1, 0]
+
+        self.set_hi_player(self.players[orders[0]], orders[0])
+        self.set_ai_player(self.players[orders[1]], orders[1])
+
+    def computer_vs_computer(self):
+        for i in range(2): self.set_ai_player(self.players[i], i)
+
+    def set_players(self):
         print()
 
-    def gen_hi(self,agent,n):
-        '''
-            Dialog for setting up human player
-        '''
-        agent.kind = "hi"
-        agent.name = input("   Enter name of the player{}: ".format(n))
-        self.gen_ships_hi(agent)
-        input("   {} has been set. Press Enter to continue.".format(agent.name))
-        print()
-
-    def init_game(self):
-        '''
-            Function handling initial game setup such as
-            mode, creating agent instances and grid generation
-        '''
-        print()
-        print("    ____        _   _   _           _     _       ")
-        print("   | __ )  __ _| |_| |_| | ___  ___| |__ (_)_ __  ")
-        print("   |  _ \\ / _` | __| __| |/ _ \\/ __| '_ \\| | '_ \\ ")
-        print("   | |_) | (_| | |_| |_| |  __/\\__ \\ | | | | |_) |")
-        print("   |____/ \\__,_|\\__|\\__|_|\\___||___/_| |_|_| .__/ ")
-        print("                                           |_|  ")
-        print()
-        print("            0: Player   vs. Player")
-        print("            1: Player   vs. Computer")
-        print("            2: Computer vs. Computer")
-        print()
-
+        # get option from the user
         option = ""
-        while option not in ["0","1","2"]:
-            option = input("   Select game option: ")
+        while option not in ["0", "1", "2"]:
+            option = input(" Select option: ")
             print()
         
-        if option == "0":
-            self.gen_hi(self.agent1," 1")
-            for i in range(30):
-                print()
-            self.gen_hi(self.agent2," 2")
-            for i in range(30):
-                print()
-            self.order.append(self.agent1)
-            self.order.append(self.agent2)
-
-        elif option == "1":
-            self.gen_hi(self.agent1,"")
-            self.gen_ships_ai(self.agent2,"")
-            order = ""
-            while order not in ["1","2"]:
-                order = input("   Do you want to start first (1) or second (2)? ")
-                print()
-                if order == "1":
-                    self.order.append(self.agent1)
-                    self.order.append(self.agent2)
-                elif order == "2":
-                    self.order.append(self.agent2)
-                    self.order.append(self.agent1)
-
-        elif option == "2":
-            self.gen_ships_ai(self.agent1," 1")
-            self.gen_ships_ai(self.agent2," 2")
-            self.order.append(self.agent1)
-            self.order.append(self.agent2)
+        if   option == "0": self.user_vs_user()
+        elif option == "1": self.user_vs_computer()
+        elif option == "2": self.computer_vs_computer()
         
-        print("   The game has been started!")
+        print(" The game has been started!")
         print()
 
-# Play game
+    def active_player(self) -> Player():
+        return self.players[self.player]
 
-    def uncover_grid(self, grid, ref_grid):
-        '''
-            Both grids are uncovered after winner is defined.
-        '''
-        for i in range(1,len(grid)):
-            for j in range(1,len(grid[0])):
-                if grid[i][j] == "∙":
-                    grid[i][j] = ref_grid[i][j]
+    def opponent(self) -> Player():
+        return self.players[1 - self.player]
 
-    def print_board(self):
+    # TODO
+    def try_ai_strike(self, row, col) -> bool:
+        
         '''
-            Function handling visual representation of the grid.
-            New grid is drawn after each step.
+            Evaluate strike made by a computer player. Returns True if
+            opponent's ship is hit, otherwise returns False.
         '''
-        rows = len(self.order[0].grid_enemy)
-        cols = len(self.order[0].grid_enemy[0])
-        print("   ┌──────────────────────────────────────────────────┬──────────────────────────────────────────────────┐")
-        print("   │ {:48}".format(self.order[0].name),end="")
-        print(" │ {:48} │".format(self.order[1].name),end="")
-        print()
-        print("   │ Rem. {:2} : ".format(self.order[0].ships_m), end="")
-        for i in range(1,len(self.order[0].ships_c)-1):
-            print("{}x {}, ".format(self.order[0].ships_c[i], self.order[0].ships_s[i]), end="")
-        print("{}x {}".format(self.order[0].ships_c[len(self.order[0].ships_c)-1], self.order[0].ships_s[len(self.order[0].ships_c)-1]), end="")
-        print(" │ Rem. {:2} : ".format(self.order[1].ships_m), end="")
-        for i in range(1,len(self.order[1].ships_c)-1):
-            print("{}x {}, ".format(self.order[1].ships_c[i], self.order[1].ships_s[i]), end="")
-        print("{}x {} │".format(self.order[1].ships_c[len(self.order[1].ships_c)-1], self.order[1].ships_s[len(self.order[1].ships_c)-1]), end="")
-        print()
-        print("   ├──────────────────────────────────────────────────┼──────────────────────────────────────────────────┤")
-        for i in range(rows):
-            print("   │         ",end="")
-            for j in range(cols):
-                print("{:3}".format(str(self.order[0].grid_enemy[i][j])), end="",flush=True)
-            print("        │         ", end="", flush=True)
-            for j in range(cols):
-                print("{:3}".format(str(self.order[1].grid_enemy[i][j])), end="", flush=True)
-            print("        │")
-        print("   ├──────────────────────────────────────────────────┴──────────────────────────────────────────────────┤")
-        print("   │ {:15}".format(self.last_agent_name),end="")
-        turns = ", ".join(map(str, self.last_turns))
-        print("{:85}│".format(turns))
-        print("   └─────────────────────────────────────────────────────────────────────────────────────────────────────┘")
 
-    def evaluate_point_ai(self,rC,cC,agent,enemy):
-        '''
-            Evaluate each point chosen specifically by pc player.
-        '''
-        sign = enemy.grid_agent[rC][cC]
-        agent.grid_enemy[rC][cC] = sign
-        if sign == "■":
-            agent.to_check = []                                 # no longer relevant
-            agent.ships_f.append((rC,cC))
-            agent.ships_f.sort()
-            enemy_cells_ship = enemy.find_cells_ship(rC,cC)
-            enemy_cells_ship.sort()
-            if agent.ships_f == enemy_cells_ship:               # ship is found
-                enemy.ships_c[len(agent.ships_f)] -= 1
-                enemy.ships_m -= 1
-                agent.insert_enemy_ship(agent.ships_f)
-                agent.ships_f = []
+        cell = opponent.grid.get_view(row, col)
+        active_player().opponent_grid.set_ship_cell(row, col)
+
+        if Grid.is_ship(cell):
+            self.active_player.ship_cells_found.append((row, col))
+            self.active_player.ship_cells_found.sort()
+
+
             return True
+        
         return False
 
-    def evaluate_point_hi(self,rC,cC,agent,enemy):
-        '''
-            Evaluate each point chosen specifically by human player.
-        '''
-        sign = enemy.grid_agent[rC][cC]
-        agent.grid_enemy[rC][cC] = sign
-        if sign == "■":
-            agent.set_hi.add((rC,cC))
-            enemy_cells_ship = set(enemy.find_cells_ship(rC,cC))
-            if agent.ship_in_set_hi(enemy_cells_ship, agent.set_hi):
-                enemy.ships_c[len(enemy_cells_ship)] -= 1
-                enemy.ships_m -= 1
-                agent.insert_enemy_ship(enemy_cells_ship)
-                agent.remove_ship_from_set_hi(enemy_cells_ship, agent.set_hi)
-            return True
-        return False
-        
-        cells_ship = enemy.find_cells_ship(rC,cC)
+    def eval_hi_strike(self,rC,cC,agent,enemy):
 
-    def strike(self, index):
-        '''
-            Function controls each turn until someone hit empty cell
-            or the winner is determined. Turns are repeat.
-        '''
-        agent = self.order[index]
-        enemy = self.order[(index+1)%2]
-        self.last_turns = []
-        self.last_agent_name = agent.name
-        if agent.kind == "ai":                                  # ai
-            ok = True
+        '''Evaluate strike made by a user.'''
+        
+        pass
+
+    def strike(self):
+
+        if self.active_player.is_ai():
+
+            if not self.active_player.has_ship_cells_found:
+                
+
+            # has good cell candidates to verify
+            if self.active_player.has_cells_to_check():
+                index = random.randrange(len(active_player.to_check))
+                row, col  = self.active_player.checkout_cell(index)
+                if self.opponent.grid.is_ship_cell(row, col):
+
+
+            # try any random unknown cell
+            else:
+
+
+
+
+
             while ok and enemy.ships_m > 0:
                 free_cells = agent.find_enemy_free_cells()      # recalculate free cells
                 if len(agent.ships_f) == 0:                     # select random "∙" point
@@ -239,7 +274,8 @@ class Game:
                     rC,cC = agent.to_check.pop()
                     ok = self.evaluate_point_ai(rC,cC,agent,enemy)
                     self.last_turns.append((rC,cC))
-        elif agent.kind == "hi":                                # hi
+        
+        else:
             ok = True
             while ok and enemy.ships_m > 0:
                 rC,cC = agent.enter_point_manually()
@@ -248,19 +284,18 @@ class Game:
                 if ok:
                     self.print_board()
 
-    def play_game(self):
-        '''
-            Game handler, determine who makes the turn.
-        '''
-        index = 0
-        while self.agent1.ships_m != 0 and self.agent2.ships_m != 0:
-            index %= 2
-            self.print_board()
-            self.strike(index)
-            index += 1
-        self.uncover_grid(self.order[0].grid_enemy, self.order[1].grid_agent)
-        self.uncover_grid(self.order[1].grid_enemy, self.order[0].grid_agent)
-        self.print_board()
-        if   self.agent1.ships_m == 0: print("   {} wins. Game over!".format(self.agent2.name))
-        elif self.agent2.ships_m == 0: print("   {} wins. Game over!".format(self.agent1.name))
+    def play(self):
+
+        '''Main game loop alternates player turns.'''
+
+        while self.player1.has_ships() and self.player2.has_ships():
+            self.strike()
+            if not self.hit:
+                self.player = 1 - self.player
+                self.turns  = []
+            self.show()
+        for player in self.players: player.opponent_grid.finalize()
+        self.show()
+        winner = self.player1.name if self.player1.has_ships() else self.player2.name
+        print(" {} wins. Game over!".format(winner))        
         print()

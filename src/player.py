@@ -12,12 +12,12 @@ class Player:
 
     ai_type = "ai"
     hi_type = "hi"
+    ship_views = ["", "■", "■■", "■■■", "■■■■", "■■■■■"]
 
     def __init__(self):
         self.name             = ""
         self.type             = ""
-        self.ships_count      = [ 0,   4,    3,    2,       1,      1 ]
-        self.ships_views      = ["", "■", "■■", "■■■", "■■■■", "■■■■■"]
+        self.ships_count      = [0, 4, 3, 2, 1, 1]
         self.unknown_cells    = [(i, j) for i in range(1, Grid.rows + 1) for j in range(1, Grid.cols + 1)]
         self.ship_cells_found = []
         self.cells_to_check   = []
@@ -148,11 +148,13 @@ class Player:
         else: return True
 
     def report_invalid_input(self):
-        print(" invalid input, try again. ", end="")
+        print(" invalid input, try again")
         
-    def get_user_position(self) -> (int, int):
+    def get_user_position(self, message) -> (int, int):
         while True:
             try:
+                print()
+                print("{}".format(message), end="")
                 line = input().split()
                 if len(line) != 2: self.report_invalid_input()
                 else:
@@ -164,12 +166,9 @@ class Player:
             except:
                 self.report_invalid_input()
 
-    def get_user_segment(self) -> (int, int, int, int):
-        print(" select from position ", end="")
-        row_fr, col_fr = self.get_user_position()
-        print(" select to position ", end="")
-        row_to, col_to = self.get_user_position()
-
+    def get_user_interval(self) -> (int, int, int, int):
+        row_fr, col_fr = self.get_user_position(" position from ")
+        row_to, col_to = self.get_user_position(" position to   ")
         return (row_fr, col_fr, row_to, col_to) 
 
     def add_water_around(self, row, col):
@@ -177,37 +176,31 @@ class Player:
             for dir_c in range(-1, 2):
                 new_r = row + dir_r
                 new_c = col + dir_c
-                if Grid.within_bounds(new_r, new_c) and Grid.is_unknown(self.grid.get_cell(new_r, new_c)):
-                    self.grid.set_water_cell(new_r, new_c)
+                if self.grid.is_unknown(new_r, new_c):
+                    self.grid.set_water(new_r, new_c)
 
     def positions_unknown(self, positions) -> bool:
         are_unknown = True
         for row, col in positions:
-            are_unknown = are_unknown and Grid.is_unknown(self.grid.get_cell(row, col))
+            are_unknown = are_unknown and self.grid.is_unknown(row, col)
         return are_unknown
 
     def add_ship_pieces(self, pieces):
         '''Add ship pieces and water around.'''
-        for row, col in pieces: self.grid.set_ship_cell(row, col)
+        for row, col in pieces: self.grid.set_ship(row, col)
         for row, col in pieces: self.add_water_around(row, col)
 
-    def add_horizontal_ship(self, row, col_left, col_right) -> bool:
+    def add_oriented_ship(self, dim, lower, higher, is_horizontal) -> bool:
         pos = []
-        while col_left <= col_right:
-            pos.append((row, col_left))
-            col_left += 1
+        while lower <= higher:
+            pos.append((dim, lower)) if is_horizontal else pos.append((lower, dim))
+            lower += 1
         ship_set = self.positions_unknown(pos)
         if ship_set: self.add_ship_pieces(pos)
         return ship_set
 
-    def add_vertical_ship(self, col, row_above, row_below) -> bool:
-        pos = []
-        while row_above <= row_below:
-            pos.append((row_above, col))
-            row_above += 1
-        ship_set = self.positions_unknown(pos)
-        if ship_set: self.add_ship_pieces(pos)
-        return ship_set
+    def map_values(self, a, b, c) -> (int, int, int):
+        return (a, min(b, c), max(b, c))
 
     def add_ship(self, ships_count) -> list():
 
@@ -215,40 +208,85 @@ class Player:
         length   = 0
 
         while not ship_set:
-            print()
-            print(" enter coordinates")
-            row_fr, col_fr, row_to, col_to = self.get_user_segment()
+            row_fr, col_fr, row_to, col_to = self.get_user_interval()
 
-            # horizontal segment
+            dim = lower = higher = 0 # declare vars
+            is_h = False
+
             if row_fr == row_to:
-                col_left  = min(col_fr, col_to)
-                col_right = max(col_fr, col_to)
-                length    = col_right - col_left + 1
+                dim, lower, higher = self.map_values(row_fr, col_fr, col_to)
+                is_h = True
+            if col_fr == col_to:
+                dim, lower, higher = self.map_values(col_fr, row_fr, row_to)
+                is_h = False
+            length = higher - lower + 1
 
-                # attempt to add horizontal ship
-                if ships_count[length] > 0:
-                    ships_count[length] -= 1
-                    ship_set = self.add_horizontal_ship(row_fr, col_left, col_right)
-                    if not ship_set: ships_count[length] += 1
-
-            # vertical segment
-            elif col_fr == col_to:
-                row_above = min(row_fr, row_to)
-                row_below = max(row_fr, row_to)
-                length    = row_below - row_above + 1
-
-                # attempt to add vertical ship
-                if ships_count[length] > 0:
-                    ships_count[length] -= 1
-                    ship_set = self.add_vertical_ship(col_fr, row_above, row_below)
-                    if not ship_set: ships_count[length] += 1
+            if length >= 1 and length <= 5 and ships_count[length] > 0:
+                ships_count[length] -= 1
+                ship_set = self.add_oriented_ship(dim, lower, higher, is_h)
+                if not ship_set: ships_count[length] += 1
             
             if not ship_set: self.report_invalid_input()
             
         return ships_count
 
+    def find_ship_segments(self, row, col) -> list():
+        segments = []
+        segments.append((row, col))
+        dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+
+        for row_dir, col_dir in dirs:
+            mul = 1
+            while True:
+                row_new = row + row_dir * mul
+                col_new = col + col_dir * mul
+                if not self.grid.is_ship(row_new, col_new): break
+                segments.append((row_new, col_new))
+                mul += 1
+
+        return segments
+
+    def remove_water_cell(self, row, col):
+        is_ship_adjacent = False
+        for row_dir in range(-1, 2):
+            for col_dir in range(-1, 2):
+                row_new = row + row_dir
+                col_new = col + col_dir
+                is_ship_adjacent = is_ship_adjacent or self.grid.is_ship(row_new, col_new)
+        if not is_ship_adjacent: self.grid.set_unknown(row, col)
+
+    def remove_ship_segments(self, segments):
+        
+        # first set segments to unknown cells
+        for row, col in segments:
+            self.grid.set_unknown(row, col)
+
+        # for each such segment try to remove water around
+        for row, col in segments:
+            for row_dir in range(-1, 2):
+                for col_dir in range(-1, 2):
+                    row_new = row + row_dir
+                    col_new = col + col_dir
+                    if self.grid.is_water(row_new, col_new):
+                        self.remove_water_cell(row_new, col_new)
+
     def remove_ship(self, ships_count) -> list():
-        pass
+        '''
+            The user select a ship piece on the current board and removes
+            the entire ship.
+        '''
+        ship_set = False
+
+        while not ship_set:
+            row, col = self.get_user_position(" ship segment ")
+            ship_set = self.grid.is_ship(row, col)
+        
+        # find all segments
+        ship_segments = self.find_ship_segments(row, col)
+        ships_count[len(ship_segments)] += 1
+        self.remove_ship_segments(ship_segments)
+
+        return ships_count
 
     def set_ships(self):
         '''The user sets ships manually.'''
@@ -256,14 +294,15 @@ class Player:
         ships_count = self.ships_count[:]
 
         while sum(ships_count) > 0:
-            print()
-            print(" current grid")
-            print()
+            self.show_header(ships_count)
             self.grid.show()
+
             opt = ''
-            while opt not in [ "a", "r" ]:
+            valid_opts = [ "a", "r" ]
+            while opt not in valid_opts:
                 print()
                 opt = input(" (a)dd or (r)emove ship? ")
+                if opt not in valid_opts: self.report_invalid_input()
             
             if opt == "a": ships_count = self.add_ship(ships_count)
             else:
@@ -286,5 +325,15 @@ class Player:
             except:
                 print(" Entered coordinates are invalid, try again.")
 
-p = Player()
-p.set_ships()
+    def show_header(self, ships_count):
+        print()
+        print(" ", end="")
+        self.show_ships(ships_count)
+        print()
+        print()
+
+    def show_ships(self, ships_count):
+        result = []
+        for i in range(1, len(ships_count)):
+            result.append("{}x {}".format(ships_count[i], Player.ships_views[i]))
+        print(", ".join(result), end="")
