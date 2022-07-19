@@ -1,16 +1,12 @@
 # Battleship
 
-## Introduction
+A `Python` implementation of the board game [Battleship](https://en.wikipedia.org/wiki/Battleship_(game)).
 
-A `Python` implementation of the board game [Battleship](https://en.wikipedia.org/wiki/Battleship_(game))
-
-![open](./assets/images/battleship.png)
-
-## System requirements
+# System requirements
 
 Make sure that `Python 3` is installed on the target system.
 
-## Installation
+# Installation
 
 ```console
 git clone https://github.com/zhukovdm/battleship
@@ -18,6 +14,10 @@ cd battleship/src/
 python3 battleship.py
 ```
 
-## Gameplay
+# Gameplay
 
 The gameplay is intuitive, just follow the instructions.
+
+# Preview
+
+![open](./assets/images/battleship.png)
